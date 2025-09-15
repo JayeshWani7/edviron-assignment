@@ -289,7 +289,7 @@ export default function DashboardPage() {
                 </tr>
               ) : (
                 stats.recentTransactions.slice(0, 5).map((transaction) => (
-                  <tr key={transaction.collect_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={transaction.collect_id} className="table-row">
                     <td className="table-cell">
                       <div className="font-mono text-sm">
                         {transaction.custom_order_id}
