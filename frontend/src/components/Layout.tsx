@@ -7,6 +7,8 @@ import {
   CreditCardIcon,
   BuildingOfficeIcon,
   MagnifyingGlassIcon,
+  BanknotesIcon,
+
   SunIcon,
   MoonIcon,
   UserIcon,
@@ -19,6 +21,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Transactions', href: '/transactions', icon: CreditCardIcon },
   { name: 'School Transactions', href: '/school-transactions', icon: BuildingOfficeIcon },
+  { name: 'Payments', href: '/payments', icon: BanknotesIcon },
   { name: 'Check Status', href: '/status-check', icon: MagnifyingGlassIcon },
 ];
 

@@ -1,11 +1,13 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
 import * as jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { Order, OrderDocument } from '../schemas/order.schema';
-import { CreatePaymentDto } from './dto/payment.dto';
+import { CreatePaymentDto, CreateCollectRequestDto, CheckPaymentStatusDto } from './dto/payment.dto';
+import { JwtUtilService } from './jwt-util.service';
 
 @Injectable()
 export class PaymentService {
@@ -13,9 +15,12 @@ export class PaymentService {
   private readonly apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0cnVzdGVlSWQiOiI2NWIwZTU1MmRkMzE5NTBhOWI0MWM1YmEiLCJJbmRleE9mQXBpS2V5Ijo2LCJpYXQiOjE3MTE2MjIyNzAsImV4cCI6MTc0MzE3OTg3MH0.Rye77Dp59GGxwCmwWekJHRj6edXWJnff9finjMhxKuw';
   private readonly schoolId = '65b0e6293e9f76a9694d84b4';
   private readonly paymentApiUrl = 'https://staging.edviron.com/api';
+  private readonly edvironApiUrl = 'https://dev-vanilla.edviron.com/erp';
 
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+    private configService: ConfigService,
+    private jwtUtilService: JwtUtilService,
   ) {}
 
   async createPayment(createPaymentDto: CreatePaymentDto) {
@@ -121,6 +126,135 @@ export class PaymentService {
       throw new HttpException(
         error.message || 'Error fetching payment status',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Create payment link using Edviron API
+   */
+  async createCollectRequest(createCollectRequestDto: CreateCollectRequestDto) {
+    try {
+      const apiKey = this.configService.get<string>('EDVIRON_API_KEY') || this.apiKey;
+      
+      const response = await axios.post(
+        `${this.edvironApiUrl}/create-collect-request`,
+        createCollectRequestDto,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error('Create collect request error:', error);
+      
+      if (error.response) {
+        throw new HttpException(
+          `Edviron API error: ${error.response.data?.message || error.response.statusText}`,
+          error.response.status || HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+      
+      throw new HttpException(
+        'Failed to create collect request',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Check payment status using Edviron API
+   */
+  async checkPaymentStatus(checkPaymentStatusDto: CheckPaymentStatusDto) {
+    try {
+      const apiKey = this.configService.get<string>('EDVIRON_API_KEY') || this.apiKey;
+      const { collect_request_id, school_id, sign } = checkPaymentStatusDto;
+
+      const url = `${this.edvironApiUrl}/collect-request/${collect_request_id}`;
+      const params = new URLSearchParams({
+        school_id,
+        sign,
+      });
+
+      const response = await axios.get(`${url}?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
+      });
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error('Check payment status error:', error);
+      
+      if (error.response) {
+        throw new HttpException(
+          `Edviron API error: ${error.response.data?.message || error.response.statusText}`,
+          error.response.status || HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
+      
+      throw new HttpException(
+        'Failed to check payment status',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Helper method to create a collect request with auto-generated JWT
+   */
+  async createCollectRequestWithJWT(school_id: string, amount: string, callback_url: string) {
+    try {
+      // Generate JWT sign
+      const sign = this.jwtUtilService.generateCreateRequestSign(school_id, amount, callback_url);
+
+      // Create collect request
+      const collectRequestDto: CreateCollectRequestDto = {
+        school_id,
+        amount,
+        callback_url,
+        sign,
+      };
+
+      return await this.createCollectRequest(collectRequestDto);
+    } catch (error) {
+      throw new HttpException(
+        `Failed to create collect request: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Helper method to check payment status with auto-generated JWT
+   */
+  async checkPaymentStatusWithJWT(collect_request_id: string, school_id: string) {
+    try {
+      // Generate JWT sign
+      const sign = this.jwtUtilService.generateStatusCheckSign(school_id, collect_request_id);
+
+      // Check payment status
+      const checkStatusDto: CheckPaymentStatusDto = {
+        collect_request_id,
+        school_id,
+        sign,
+      };
+
+      return await this.checkPaymentStatus(checkStatusDto);
+    } catch (error) {
+      throw new HttpException(
+        `Failed to check payment status: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }

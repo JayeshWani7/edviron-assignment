@@ -12,6 +12,10 @@ import DashboardPage from './pages/DashboardPage';
 import TransactionsPage from './pages/TransactionsPage';
 import SchoolTransactionsPage from './pages/SchoolTransactionsPage';
 import TransactionStatusPage from './pages/TransactionStatusPage';
+import PaymentsPage from './pages/PaymentsPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import PaymentFailurePage from './pages/PaymentFailurePage';
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +48,8 @@ function App() {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/payments/callback/success" element={<PaymentSuccessPage />} />
+                <Route path="/payments/callback/failure" element={<PaymentFailurePage />} />
                 <Route path="/test" element={
                   <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
                     <div className="text-center">
@@ -77,6 +83,7 @@ function App() {
                   <Route path="transactions" element={<TransactionsPage />} />
                   <Route path="school-transactions" element={<SchoolTransactionsPage />} />
                   <Route path="status-check" element={<TransactionStatusPage />} />
+                  <Route path="payments" element={<PaymentsPage />} />
                 </Route>
               </Routes>
             </div>
