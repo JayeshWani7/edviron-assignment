@@ -160,33 +160,33 @@ export default function SchoolTransactionsPage() {
               <thead>
                 <tr>
                   <th
-                    className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                    className="table-header sortable"
                     onClick={() => handleSort('custom_order_id')}
                   >
                     Order ID {getSortIcon('custom_order_id')}
                   </th>
                   <th className="table-header">Student Details</th>
                   <th
-                    className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                    className="table-header sortable"
                     onClick={() => handleSort('gateway')}
                   >
                     Gateway {getSortIcon('gateway')}
                   </th>
                   <th
-                    className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                    className="table-header sortable"
                     onClick={() => handleSort('order_amount')}
                   >
                     Amount {getSortIcon('order_amount')}
                   </th>
                   <th
-                    className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                    className="table-header sortable"
                     onClick={() => handleSort('status')}
                   >
                     Status {getSortIcon('status')}
                   </th>
                   <th className="table-header">Payment Details</th>
                   <th
-                    className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                    className="table-header sortable"
                     onClick={() => handleSort('payment_time')}
                   >
                     Date {getSortIcon('payment_time')}
@@ -220,7 +220,7 @@ export default function SchoolTransactionsPage() {
                   </tr>
                 ) : (
                   filteredTransactions.map((transaction) => (
-                    <tr key={transaction.collect_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <tr key={transaction.collect_id} className="table-row">
                       <td className="table-cell">
                         <div className="font-mono text-sm">
                           {transaction.custom_order_id}

@@ -264,7 +264,7 @@ export default function TransactionsPage() {
             <thead>
               <tr>
                 <th
-                  className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="table-header sortable"
                   onClick={() => handleSort('custom_order_id')}
                 >
                   <div className="flex items-center">
@@ -273,7 +273,7 @@ export default function TransactionsPage() {
                   </div>
                 </th>
                 <th
-                  className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="table-header sortable"
                   onClick={() => handleSort('school_id')}
                 >
                   <div className="flex items-center">
@@ -283,7 +283,7 @@ export default function TransactionsPage() {
                 </th>
                 <th className="table-header">Student</th>
                 <th
-                  className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="table-header sortable"
                   onClick={() => handleSort('gateway')}
                 >
                   <div className="flex items-center">
@@ -292,7 +292,7 @@ export default function TransactionsPage() {
                   </div>
                 </th>
                 <th
-                  className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="table-header sortable"
                   onClick={() => handleSort('order_amount')}
                 >
                   <div className="flex items-center">
@@ -301,7 +301,7 @@ export default function TransactionsPage() {
                   </div>
                 </th>
                 <th
-                  className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="table-header sortable"
                   onClick={() => handleSort('status')}
                 >
                   <div className="flex items-center">
@@ -310,7 +310,7 @@ export default function TransactionsPage() {
                   </div>
                 </th>
                 <th
-                  className="table-header cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="table-header sortable"
                   onClick={() => handleSort('payment_time')}
                 >
                   <div className="flex items-center">
@@ -338,7 +338,7 @@ export default function TransactionsPage() {
                 </tr>
               ) : (
                 filteredTransactions.map((transaction) => (
-                  <tr key={transaction.collect_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={transaction.collect_id} className="table-row">
                     <td className="table-cell font-mono text-sm">
                       {transaction.custom_order_id}
                     </td>
