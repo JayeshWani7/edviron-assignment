@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   MagnifyingGlassIcon,
@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useQuery } from '@tanstack/react-query';
 import { transactionService } from '../services/transaction';
-import type { Transaction, TransactionFilters } from '../types';
+import type { TransactionFilters } from '../types';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -51,7 +51,7 @@ export default function TransactionsPage() {
   }), [statusFilter, schoolFilter, gatewayFilter, dateFrom, dateTo]);
 
   // Fetch transactions
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['transactions', page, limit, sort, order, filters],
     queryFn: () => transactionService.getAllTransactions(page, limit, sort, order, filters),
   });
@@ -107,14 +107,6 @@ export default function TransactionsPage() {
       ? gatewayFilter.filter(g => g !== gateway)
       : [...gatewayFilter, gateway];
     updateSearchParams('gateway', newGateways);
-  };
-
-  const handleSchoolFilter = (schoolId: string) => {
-    if (!schoolId.trim()) return;
-    const newSchools = schoolFilter.includes(schoolId)
-      ? schoolFilter.filter(s => s !== schoolId)
-      : [...schoolFilter, schoolId];
-    updateSearchParams('school_id', newSchools);
   };
 
   const clearFilters = () => {

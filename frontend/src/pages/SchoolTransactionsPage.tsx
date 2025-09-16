@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { MagnifyingGlassIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
 import { useQuery } from '@tanstack/react-query';
 import { transactionService } from '../services/transaction';
-import type { Transaction } from '../types';
 import { format } from 'date-fns';
 
 const schoolOptions = [
