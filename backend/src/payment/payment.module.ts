@@ -5,10 +5,14 @@ import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import { JwtUtilService } from './jwt-util.service';
 import { Order, OrderSchema } from '../schemas/order.schema';
+import { PaymentTransaction, PaymentTransactionSchema } from '../schemas/payment-transaction.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]),
+    MongooseModule.forFeature([
+      { name: Order.name, schema: OrderSchema },
+      { name: PaymentTransaction.name, schema: PaymentTransactionSchema }
+    ]),
     ConfigModule,
   ],
   controllers: [PaymentController],

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import paymentService from '../services/payment';
 
 const PaymentFailurePage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,57 +16,102 @@ const PaymentFailurePage: React.FC = () => {
     const amount = searchParams.get('amount');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
+    const failure_reason = searchParams.get('failure_reason') || searchParams.get('reason');
 
-    if (collectRequestId && schoolId) {
-      // Try to get updated payment status
-      checkPaymentStatus(collectRequestId, schoolId);
-    } else {
-      // Use URL parameters if available
-      setPaymentDetails({
-        collect_request_id: collectRequestId,
-        school_id: schoolId,
-        status: status || 'FAILED',
-        amount: amount,
-        error: error,
-        error_description: errorDescription,
-      });
-      setLoading(false);
-    }
+    const updatePaymentFailureStatus = async () => {
+      if (collectRequestId && schoolId) {
+        try {
+          // Determine failure type based on URL parameters or test UPI ID
+          let failureType = 'failed';
+          let failureMessage = 'Payment failed';
+          let paymentMethod = 'UPI';
 
-    // Show failure toast
-    toast.error('Payment failed. Please try again.');
-  }, [searchParams]);
+          if (failure_reason) {
+            if (failure_reason.includes('invalid') || failure_reason.includes('Invalid VPA')) {
+              failureType = 'invalid_vpa';
+              failureMessage = 'Invalid UPI ID';
+              paymentMethod = 'UPI (testinvalid@gocash)';
+            } else {
+              failureMessage = failure_reason;
+              paymentMethod = 'UPI (testfailure@gocash)';
+            }
+          } else if (error) {
+            failureMessage = errorDescription || error;
+          }
 
-  const checkPaymentStatus = async (collectRequestId: string, schoolId: string) => {
-    try {
-      const response = await paymentService.checkPaymentStatus(collectRequestId, schoolId);
-      setPaymentDetails({
-        collect_request_id: collectRequestId,
-        school_id: schoolId,
-        ...response.data,
-      });
+          // Update payment status in backend database
+          const updateResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/payment/update-status`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              collect_request_id: collectRequestId,
+              status: failureType,
+              payment_details: {
+                payment_mode: 'UPI',
+                payment_details: paymentMethod,
+                failure_reason: failureMessage,
+                gateway_response: `Payment ${failureType}: ${failureMessage}`,
+                payment_time: new Date().toISOString()
+              }
+            })
+          });
 
-      // Update local payment record if it exists
-      const paymentRequests = await paymentService.getPaymentRequests();
-      const existingPayment = paymentRequests.find(p => p.collect_request_id === collectRequestId);
-      if (existingPayment) {
-        await paymentService.updatePaymentRequest(existingPayment.id, {
-          status: 'failed',
+          if (updateResponse.ok) {
+            const result = await updateResponse.json();
+            console.log('✅ Payment failure status updated in database:', result);
+          }
+
+          // Set payment details for UI display
+          setPaymentDetails({
+            collect_request_id: collectRequestId,
+            school_id: schoolId,
+            status: failureType,
+            amount: amount,
+            error: error,
+            error_description: errorDescription,
+            failure_type: failureType,
+            failure_message: failureMessage,
+            payment_method: paymentMethod
+          });
+
+        } catch (error: any) {
+          console.error('❌ Error updating payment failure status:', error);
+          setPaymentDetails({
+            collect_request_id: collectRequestId,
+            school_id: schoolId,
+            status: status || 'FAILED',
+            amount: amount,
+            error: error,
+            error_description: errorDescription,
+          });
+        }
+      } else {
+        // Use URL parameters if available
+        setPaymentDetails({
+          collect_request_id: collectRequestId,
+          school_id: schoolId,
+          status: status || 'FAILED',
+          amount: amount,
+          error: error,
+          error_description: errorDescription,
         });
       }
-    } catch (error) {
-      console.error('Error checking payment status:', error);
-      // Still show failure page
-      setPaymentDetails({
-        collect_request_id: collectRequestId,
-        school_id: schoolId,
-        status: 'FAILED',
-        error: 'Payment verification failed',
-      });
-    } finally {
       setLoading(false);
-    }
-  };
+
+      // Show appropriate failure toast
+      if (failure_reason?.includes('invalid') || failure_reason?.includes('Invalid VPA')) {
+        toast.error('❌ Invalid UPI ID provided');
+      } else {
+        toast.error('❌ Payment failed. Please try again.');
+      }
+    };
+
+    updatePaymentFailureStatus();
+  }, [searchParams]);
+
+
 
   const handleTryAgain = () => {
     // If we have payment details, navigate back to a new payment with prefilled data
@@ -120,18 +164,31 @@ const PaymentFailurePage: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           {/* Failure Icon */}
-          <div className="mx-auto flex items-center justify-center h-24 w-24 rounded-full bg-red-100 dark:bg-red-900/20 mb-6">
-            <svg className="h-12 w-12 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          <div className={`mx-auto flex items-center justify-center h-24 w-24 rounded-full mb-6 ${
+            paymentDetails?.failure_type === 'invalid_vpa' 
+              ? 'bg-orange-100 dark:bg-orange-900/20' 
+              : 'bg-red-100 dark:bg-red-900/20'
+          }`}>
+            {paymentDetails?.failure_type === 'invalid_vpa' ? (
+              <svg className="h-12 w-12 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            ) : (
+              <svg className="h-12 w-12 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            )}
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Payment Failed 😞
+            {paymentDetails?.failure_type === 'invalid_vpa' ? 'Invalid UPI ID ⚠️' : 'Payment Failed ❌'}
           </h1>
           
           <p className="text-gray-600 dark:text-gray-400 mb-8">
-            We couldn't process your payment. Please try again or contact support.
+            {paymentDetails?.failure_type === 'invalid_vpa' 
+              ? 'The UPI ID provided is not valid. Please check and try again with a valid UPI ID.'
+              : 'We couldn\'t process your payment. This could be due to insufficient funds, network issues, or other banking restrictions.'
+            }
           </p>
 
           {/* Payment Details Card */}
@@ -143,9 +200,18 @@ const PaymentFailurePage: React.FC = () => {
             <div className="space-y-3 text-left">
               {paymentDetails?.collect_request_id && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Payment ID:</span>
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Transaction ID:</span>
                   <span className="text-sm text-gray-900 dark:text-gray-100 font-mono">
                     {paymentDetails.collect_request_id}
+                  </span>
+                </div>
+              )}
+              
+              {paymentDetails?.payment_method && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Payment Method:</span>
+                  <span className="text-sm text-gray-900 dark:text-gray-100">
+                    {paymentDetails.payment_method}
                   </span>
                 </div>
               )}
@@ -154,33 +220,43 @@ const PaymentFailurePage: React.FC = () => {
                 <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Amount:</span>
                   <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {paymentService.formatAmount(paymentDetails.amount)}
+                    ₹{paymentDetails.amount}
                   </span>
                 </div>
               )}
               
               <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
-                  <span className="mr-1">❌</span>
-                  {paymentDetails?.status || 'FAILED'}
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  paymentDetails?.failure_type === 'invalid_vpa' 
+                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400' 
+                    : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                }`}>
+                  <span className="mr-1">
+                    {paymentDetails?.failure_type === 'invalid_vpa' ? '⚠️' : '❌'}
+                  </span>
+                  {paymentDetails?.failure_type === 'invalid_vpa' ? 'Invalid VPA' : 'Failed'}
                 </span>
               </div>
               
-              {paymentDetails?.error && (
-                <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Error:</span>
-                  <span className="text-sm text-red-600 dark:text-red-400">
-                    {paymentDetails.error}
+              {paymentDetails?.failure_message && (
+                <div className="py-2 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1">Reason:</span>
+                  <span className={`text-sm ${
+                    paymentDetails?.failure_type === 'invalid_vpa' 
+                      ? 'text-orange-600 dark:text-orange-400' 
+                      : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {paymentDetails.failure_message}
                   </span>
                 </div>
               )}
 
-              {paymentDetails?.error_description && (
-                <div className="py-2">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1">Description:</span>
+              {(paymentDetails?.error_description || paymentDetails?.error) && (
+                <div className="py-2 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1">Additional Info:</span>
                   <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {paymentDetails.error_description}
+                    {paymentDetails.error_description || paymentDetails.error}
                   </span>
                 </div>
               )}

@@ -162,4 +162,62 @@ export class PaymentController {
       };
     }
   }
+
+  /**
+   * Update payment status in database
+   * POST /payment/update-status
+   */
+  @Post('update-status')
+  async updatePaymentStatus(@Body() updateData: { 
+    collect_request_id: string, 
+    status: string, 
+    payment_details?: any 
+  }) {
+    try {
+      const result = await this.paymentService.updatePaymentStatus(
+        updateData.collect_request_id,
+        updateData.status,
+        updateData.payment_details
+      );
+      
+      return {
+        success: true,
+        message: 'Payment status updated successfully',
+        data: result,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to update payment status',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  /**
+   * Get payment transaction status from database
+   * GET /payment/transaction-status/:collect_request_id
+   */
+  @Get('transaction-status/:collect_request_id')
+  async getPaymentTransactionStatus(@Param('collect_request_id') collect_request_id: string) {
+    try {
+      const result = await this.paymentService.getPaymentTransactionStatus(collect_request_id);
+      
+      return {
+        success: true,
+        message: 'Payment transaction retrieved successfully',
+        data: result,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to get payment transaction',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
 }
