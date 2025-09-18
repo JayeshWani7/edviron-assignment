@@ -16,22 +16,61 @@ const PaymentSuccessPage: React.FC = () => {
     const status = searchParams.get('status');
     const amount = searchParams.get('amount');
 
-    if (collectRequestId && schoolId) {
-      // Try to get updated payment status
-      checkPaymentStatus(collectRequestId, schoolId);
-    } else {
-      // Use URL parameters if available
-      setPaymentDetails({
-        collect_request_id: collectRequestId,
-        school_id: schoolId,
-        status: status || 'SUCCESS',
-        amount: amount,
-      });
-      setLoading(false);
-    }
+    const updatePaymentSuccessStatus = async () => {
+      if (collectRequestId && schoolId) {
+        try {
+          // Update payment status in backend database
+          const updateResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/payment/update-status`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              collect_request_id: collectRequestId,
+              status: 'success',
+              payment_details: {
+                payment_mode: 'UPI',
+                payment_details: 'testsuccess@gocash',
+                gateway_response: 'Payment completed successfully',
+                payment_time: new Date().toISOString()
+              }
+            })
+          });
+
+          if (updateResponse.ok) {
+            const result = await updateResponse.json();
+            console.log('✅ Payment success status updated in database:', result);
+          }
+
+          // Try to get updated payment status from gateway
+          checkPaymentStatus(collectRequestId, schoolId);
+        } catch (error: any) {
+          console.error('❌ Error updating payment success status:', error);
+          // Still show success page with URL parameters
+          setPaymentDetails({
+            collect_request_id: collectRequestId,
+            school_id: schoolId,
+            status: status || 'SUCCESS',
+            amount: amount,
+          });
+          setLoading(false);
+        }
+      } else {
+        // Use URL parameters if available
+        setPaymentDetails({
+          collect_request_id: collectRequestId,
+          school_id: schoolId,
+          status: status || 'SUCCESS',
+          amount: amount,
+        });
+        setLoading(false);
+      }
+    };
+
+    updatePaymentSuccessStatus();
 
     // Show success toast
-    toast.success('Payment completed successfully!');
+    toast.success('🎉 Payment completed successfully!');
   }, [searchParams]);
 
   const checkPaymentStatus = async (collectRequestId: string, schoolId: string) => {

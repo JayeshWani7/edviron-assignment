@@ -154,6 +154,77 @@ const PaymentsPage: React.FC = () => {
 
       {/* Tab Content */}
       <div className="mt-6">
+        {/* Payment Link Display Section - Moved to top for better visibility */}
+        {createdPayment && activeTab === 'create' && (
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+                🎉 Payment Link Created Successfully!
+              </h3>
+              <button
+                onClick={() => setCreatedPayment(null)}
+                className="ml-auto text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 text-sm hover:bg-green-100 dark:hover:bg-green-900/40 rounded p-1"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-green-700 dark:text-green-300">Request ID:</span>
+                  <span className="ml-2 text-green-800 dark:text-green-200 font-mono text-xs">
+                    {createdPayment.collectRequestId}
+                  </span>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-green-700 dark:text-green-300 mb-2">
+                  Payment Link (collect_request_url):
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={createdPayment.paymentUrl}
+                    readOnly
+                    className="flex-1 px-3 py-2 bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700 rounded-md text-sm text-green-800 dark:text-green-200 font-mono"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(createdPayment.paymentUrl);
+                        toast.success('Payment link copied to clipboard!');
+                      } catch (error) {
+                        toast.error('Failed to copy link');
+                      }
+                    }}
+                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md transition-colors duration-200"
+                  >
+                    📋 Copy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openPaymentLink()}
+                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors duration-200"
+                  >
+                    🔗 Open
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>Share this link with the student/parent to complete the payment</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Create Payment Tab */}
         {activeTab === 'create' && (
           <PaymentForm 
@@ -289,79 +360,6 @@ const PaymentsPage: React.FC = () => {
             autoRefresh={true}
             refreshInterval={10000}
           />
-        )}
-
-
-
-        {/* Payment Link Display Section */}
-        {createdPayment && activeTab === 'create' && (
-          <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
-                🎉 Payment Link Created Successfully!
-              </h3>
-              <button
-                onClick={() => setCreatedPayment(null)}
-                className="ml-auto text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 text-sm hover:bg-green-100 dark:hover:bg-green-900/40 rounded p-1"
-                title="Dismiss"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-green-700 dark:text-green-300">Request ID:</span>
-                  <span className="ml-2 text-green-800 dark:text-green-200 font-mono text-xs">
-                    {createdPayment.collectRequestId}
-                  </span>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-green-700 dark:text-green-300 mb-2">
-                  Payment Link (collect_request_url):
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={createdPayment.paymentUrl}
-                    readOnly
-                    className="flex-1 px-3 py-2 bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700 rounded-md text-sm text-green-800 dark:text-green-200 font-mono"
-                    onClick={(e) => (e.target as HTMLInputElement).select()}
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(createdPayment.paymentUrl);
-                        toast.success('Payment link copied to clipboard!');
-                      } catch (error) {
-                        toast.error('Failed to copy link');
-                      }
-                    }}
-                    className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md transition-colors duration-200"
-                  >
-                    📋 Copy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openPaymentLink()}
-                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors duration-200"
-                  >
-                    🔗 Open
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Share this link with the student/parent to complete the payment</span>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>

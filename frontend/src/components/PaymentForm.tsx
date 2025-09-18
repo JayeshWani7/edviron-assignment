@@ -16,11 +16,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentCreated, className =
   
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-  const [createdPayment, setCreatedPayment] = useState<{
-    url: string;
-    collectRequestId: string;
-    amount: string;
-  } | null>(null);
 
   // Auto-generate callback URL
   React.useEffect(() => {
@@ -58,7 +53,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentCreated, className =
     }
 
     setLoading(true);
-    setCreatedPayment(null); // Clear previous payment link
     try {
       // Create payment request
       const response = await paymentService.createPaymentRequest(formData);
@@ -118,13 +112,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentCreated, className =
           console.warn('⚠️ No collect request ID found, using placeholder');
           collectRequestId = 'N/A';
         }
-
-        // Store the created payment details for display
-        setCreatedPayment({
-          url: paymentUrl,
-          collectRequestId: collectRequestId,
-          amount: formData.amount
-        });
 
         // Save to local storage for tracking
         await paymentService.savePaymentRequest({
@@ -262,95 +249,45 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onPaymentCreated, className =
         </button>
       </form>
 
-      {/* Payment Link Display Section */}
-      {createdPayment && (
-        <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
-              🎉 Payment Link Created Successfully!
-            </h3>
-          </div>
-          
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-green-700 dark:text-green-300">Amount:</span>
-                <span className="ml-2 text-green-800 dark:text-green-200">₹{createdPayment.amount}</span>
-              </div>
-              <div>
-                <span className="font-medium text-green-700 dark:text-green-300">Request ID:</span>
-                <span className="ml-2 text-green-800 dark:text-green-200 font-mono text-xs">
-                  {createdPayment.collectRequestId}
-                </span>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-green-700 dark:text-green-300 mb-2">
-                Payment Link:
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={createdPayment.url}
-                  readOnly
-                  className="flex-1 px-3 py-2 bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700 rounded-md text-sm text-green-800 dark:text-green-200 font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(createdPayment.url);
-                      toast.success('Payment link copied to clipboard!');
-                    } catch (error) {
-                      toast.error('Failed to copy link');
-                    }
-                  }}
-                  className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md transition-colors duration-200"
-                >
-                  📋 Copy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.open(createdPayment.url, '_blank');
-                    toast.success('Payment page opened in new tab');
-                  }}
-                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors duration-200"
-                >
-                  🔗 Open
-                </button>
-              </div>
-            </div>
+      {/* Additional Info */}
+      <div className="mt-6 space-y-4">
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+          <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
+            💡 Payment Information
+          </h3>
+          <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+            <li>• Payment links are valid for 24 hours</li>
+            <li>• You can track payment status in real-time</li>
+            <li>• Status updates are saved to database automatically</li>
+          </ul>
+        </div>
 
-            <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-300">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Share this link with the student/parent to complete the payment</span>
+        {/* UPI Test Credentials */}
+        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+          <h3 className="text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+            🧪 Test UPI Credentials
+          </h3>
+          <div className="text-sm text-green-700 dark:text-green-400 space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-green-100 dark:bg-green-900/40 p-2 rounded">
+                <div className="font-semibold">✅ Success</div>
+                <div className="font-mono text-xs">testsuccess@gocash</div>
+              </div>
+              <div className="bg-red-100 dark:bg-red-900/40 p-2 rounded">
+                <div className="font-semibold">❌ Failed</div>
+                <div className="font-mono text-xs">testfailure@gocash</div>
+              </div>
+              <div className="bg-orange-100 dark:bg-orange-900/40 p-2 rounded">
+                <div className="font-semibold">⚠️ Invalid VPA</div>
+                <div className="font-mono text-xs">testinvalid@gocash</div>
+              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setCreatedPayment(null)}
-              className="text-sm text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200 underline"
-            >
-              ✕ Dismiss
-            </button>
+            <p className="text-xs mt-2">
+              Use these UPI IDs during payment to test different scenarios. 
+              The system will automatically redirect and update status accordingly.
+            </p>
           </div>
         </div>
-      )}
-
-      {/* Additional Info */}
-      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
-          💡 Payment Information
-        </h3>
-        <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-          <li>• Use test environment credentials for development</li>
-          <li>• For testing, use netbanking or card (not real UPI/QR)</li>
-          <li>• Payment links are valid for 24 hours</li>
-          <li>• You can track payment status in real-time</li>
-        </ul>
       </div>
     </div>
   );

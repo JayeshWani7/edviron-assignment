@@ -6,6 +6,7 @@ import * as jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { Order, OrderDocument } from '../schemas/order.schema';
+import { PaymentTransaction, PaymentTransactionDocument } from '../schemas/payment-transaction.schema';
 import { CreatePaymentDto, CreateCollectRequestDto, CheckPaymentStatusDto } from './dto/payment.dto';
 import { JwtUtilService } from './jwt-util.service';
 
@@ -19,6 +20,7 @@ export class PaymentService {
 
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+    @InjectModel(PaymentTransaction.name) private paymentTransactionModel: Model<PaymentTransactionDocument>,
     private configService: ConfigService,
     private jwtUtilService: JwtUtilService,
   ) {}
@@ -226,8 +228,31 @@ export class PaymentService {
         sign,
       };
 
-      return await this.createCollectRequest(collectRequestDto);
+      const response = await this.createCollectRequest(collectRequestDto);
+
+      // If successful, save payment transaction to database
+      if (response.success && response.data) {
+        const paymentTransaction = new this.paymentTransactionModel({
+          collect_request_id: response.data.collect_request_id || response.data.id,
+          school_id,
+          amount: parseFloat(amount),
+          callback_url,
+          payment_url: response.data.collect_request_url || response.data.Collect_request_url,
+          jwt_sign: sign,
+          status: 'initiated',
+          metadata: {
+            created_at: new Date(),
+            api_response: response.data
+          }
+        });
+
+        await paymentTransaction.save();
+        console.log('✅ Payment transaction saved to database:', paymentTransaction._id);
+      }
+
+      return response;
     } catch (error) {
+      console.error('❌ Error in createCollectRequestWithJWT:', error);
       throw new HttpException(
         `Failed to create collect request: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
@@ -255,6 +280,64 @@ export class PaymentService {
       throw new HttpException(
         `Failed to check payment status: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Update payment status in database
+   */
+  async updatePaymentStatus(collect_request_id: string, status: string, paymentDetails?: any) {
+    try {
+      const paymentTransaction = await this.paymentTransactionModel.findOne({
+        collect_request_id
+      });
+
+      if (!paymentTransaction) {
+        throw new Error(`Payment transaction not found for collect_request_id: ${collect_request_id}`);
+      }
+
+      // Update payment status and details
+      paymentTransaction.status = status;
+      if (paymentDetails) {
+        paymentTransaction.payment_mode = paymentDetails.payment_mode;
+        paymentTransaction.bank_reference = paymentDetails.bank_reference;
+        paymentTransaction.gateway_response = paymentDetails.gateway_response;
+        paymentTransaction.payment_details = paymentDetails;
+      }
+
+      await paymentTransaction.save();
+      console.log(`✅ Payment status updated to ${status} for collect_request_id: ${collect_request_id}`);
+      
+      return paymentTransaction;
+    } catch (error) {
+      console.error('❌ Error updating payment status:', error);
+      throw new HttpException(
+        `Failed to update payment status: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Get payment status from database
+   */
+  async getPaymentTransactionStatus(collect_request_id: string) {
+    try {
+      const paymentTransaction = await this.paymentTransactionModel.findOne({
+        collect_request_id
+      });
+
+      if (!paymentTransaction) {
+        throw new Error(`Payment transaction not found for collect_request_id: ${collect_request_id}`);
+      }
+
+      return paymentTransaction;
+    } catch (error) {
+      console.error('❌ Error getting payment status:', error);
+      throw new HttpException(
+        `Failed to get payment status: ${error.message}`,
+        HttpStatus.NOT_FOUND
       );
     }
   }
