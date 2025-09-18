@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Routing Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-link { 
+            display: inline-block; 
+            margin: 10px; 
+            padding: 10px 15px; 
+            background: #007bff; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 4px; 
+        }
+        .test-link:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Vercel Routing Test Page</h1>
+        <p>If you can see this page, the basic routing is working.</p>
+        
+        <h2>Test Links:</h2>
+        <a href="/payments/callback/success" class="test-link">Test Success Callback</a>
+        <a href="/payments/callback/failure" class="test-link">Test Failure Callback</a>
+        <a href="/payments/callback/debug" class="test-link">Test Debug Page</a>
+        <a href="/payments/callback/tester" class="test-link">Test Suite</a>
+        
+        <h2>Direct Test URLs:</h2>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin: 10px 0;">
+            <p><strong>Production Issue URL:</strong></p>
+            <a href="/payments/callback/success?EdvironCollectRequestId=68cc56f5154d1bce65b55f9a&status=SUCCESS" style="word-break: break-all;">
+                /payments/callback/success?EdvironCollectRequestId=68cc56f5154d1bce65b55f9a&status=SUCCESS
+            </a>
+        </div>
+        
+        <div style="background: #e7f3ff; padding: 15px; border-radius: 4px; margin: 10px 0;">
+            <p><strong>Debug Mode:</strong></p>
+            <a href="/payments/callback/debug?EdvironCollectRequestId=68cc56f5154d1bce65b55f9a&status=SUCCESS" style="word-break: break-all;">
+                /payments/callback/debug?EdvironCollectRequestId=68cc56f5154d1bce65b55f9a&status=SUCCESS
+            </a>
+        </div>
+        
+        <h2>Current URL Info:</h2>
+        <div id="url-info" style="background: #f1f1f1; padding: 10px; border-radius: 4px; font-family: monospace;">
+            <script>
+                document.getElementById('url-info').innerHTML = 
+                    '<strong>Current URL:</strong> ' + window.location.href + '<br>' +
+                    '<strong>Pathname:</strong> ' + window.location.pathname + '<br>' +
+                    '<strong>Search:</strong> ' + window.location.search;
+            </script>
+        </div>
+        
+        <p><small>Created: September 19, 2025 - Vercel SPA Routing Fix</small></p>
+    </div>
+</body>
+</html>
