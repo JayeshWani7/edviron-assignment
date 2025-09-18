@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
-import { MagnifyingGlassIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useMemo, useEffect } from 'react';
+import { MagnifyingGlassIcon, BuildingOfficeIcon, ArrowPathIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { transactionService } from '../services/transaction';
+import { paymentService } from '../services/payment';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 const schoolOptions = [
   { id: '65b0e6293e9f76a9694d84b4', name: 'Springfield Elementary School' },
@@ -17,11 +19,15 @@ export default function SchoolTransactionsPage() {
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'transactions' | 'status'>('transactions');
 
   const limit = 10;
+  const queryClient = useQueryClient();
 
   // Fetch school transactions
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['school-transactions', selectedSchoolId, page, sortField, sortOrder],
     queryFn: () => transactionService.getTransactionsBySchool(
       selectedSchoolId,
@@ -31,7 +37,41 @@ export default function SchoolTransactionsPage() {
       sortOrder
     ),
     enabled: !!selectedSchoolId,
+    refetchInterval: isAutoRefresh ? 30000 : false, // Auto-refresh every 30 seconds
+    refetchIntervalInBackground: false,
   });
+
+  // Auto-refresh effect - refetch when returning to tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isAutoRefresh) {
+        refetch();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refetch, isAutoRefresh]);
+
+  // Manual sync function
+  const handleManualSync = async () => {
+    if (!selectedSchoolId) return;
+    
+    setIsSyncing(true);
+    try {
+      const result = await paymentService.syncSchoolTransactions(selectedSchoolId);
+      toast.success(`Synced successfully! Updated ${result.statistics?.ordersUpdated || 0} transactions, created ${result.statistics?.ordersCreated || 0} new orders.`);
+      
+      // Invalidate and refetch the query
+      queryClient.invalidateQueries({ queryKey: ['school-transactions'] });
+      refetch();
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast.error('Failed to sync school transactions');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Filter transactions by search term
   const filteredTransactions = useMemo(() => {
@@ -126,6 +166,38 @@ export default function SchoolTransactionsPage() {
               />
             </div>
           </div>
+
+          {/* Sync Controls */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Sync Controls
+            </label>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleManualSync}
+                disabled={isSyncing || !selectedSchoolId}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ArrowPathIcon className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Syncing...' : 'Sync Now'}
+              </button>
+              
+              <div className="flex items-center">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAutoRefresh}
+                    onChange={(e) => setIsAutoRefresh(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Auto-refresh (30s)
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -147,11 +219,32 @@ export default function SchoolTransactionsPage() {
                 </p>
               )}
             </div>
+            
+            {/* Status Indicators */}
+            <div className="ml-auto flex items-center space-x-4">
+              {isLoading && (
+                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                  <ArrowPathIcon className="h-4 w-4 mr-1 animate-spin" />
+                  Refreshing...
+                </div>
+              )}
+              
+              <div className="text-right">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Last updated: {format(new Date(), 'HH:mm:ss')}
+                </div>
+                {isAutoRefresh && (
+                  <div className="text-xs text-green-600 dark:text-green-400">
+                    ● Auto-refresh enabled
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Transactions Table */}
+      {/* Tab Navigation */}
       {selectedSchoolId && (
         <div className="card p-0">
           <div className="overflow-x-auto">

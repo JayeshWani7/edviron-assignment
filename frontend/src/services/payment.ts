@@ -169,6 +169,32 @@ class PaymentService {
   }
 
   /**
+   * Sync school transactions with payments for a specific school
+   */
+  async syncSchoolTransactions(schoolId: string): Promise<any> {
+    try {
+      const response = await api.post(`/payment/sync-school-transactions/${schoolId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error syncing school transactions:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to sync school transactions');
+    }
+  }
+
+  /**
+   * Get school data (payments + transactions) for a specific school
+   */
+  async getSchoolData(schoolId: string): Promise<any> {
+    try {
+      const response = await api.get(`/payment/school-data/${schoolId}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error getting school data:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to get school data');
+    }
+  }
+
+  /**
    * Validate payment request data
    */
   validatePaymentRequest(data: CreatePaymentRequest): { isValid: boolean; errors: string[] } {
