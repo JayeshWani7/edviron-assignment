@@ -9,6 +9,7 @@ import { Order, OrderDocument } from '../schemas/order.schema';
 import { PaymentTransaction, PaymentTransactionDocument } from '../schemas/payment-transaction.schema';
 import { CreatePaymentDto, CreateCollectRequestDto, CheckPaymentStatusDto } from './dto/payment.dto';
 import { JwtUtilService } from './jwt-util.service';
+import { TransactionService } from '../transaction/transaction.service';
 
 @Injectable()
 export class PaymentService {
@@ -23,6 +24,7 @@ export class PaymentService {
     @InjectModel(PaymentTransaction.name) private paymentTransactionModel: Model<PaymentTransactionDocument>,
     private configService: ConfigService,
     private jwtUtilService: JwtUtilService,
+    private transactionService: TransactionService,
   ) {}
 
   async createPayment(createPaymentDto: CreatePaymentDto) {
@@ -248,6 +250,16 @@ export class PaymentService {
 
         await paymentTransaction.save();
         console.log('✅ Payment transaction saved to database:', paymentTransaction._id);
+        
+        // Automatically sync with school transactions
+        try {
+          console.log(`🔄 Auto-syncing school transactions for new payment in school: ${school_id}`);
+          await this.transactionService.updateSchoolTransactionsFromPayments(school_id);
+          console.log(`✅ School transactions synced successfully for school: ${school_id}`);
+        } catch (syncError) {
+          console.error('⚠️ Warning: Failed to sync school transactions on payment creation:', syncError);
+          // Don't throw error as the payment creation was successful
+        }
       }
 
       return response;
@@ -309,6 +321,16 @@ export class PaymentService {
       await paymentTransaction.save();
       console.log(`✅ Payment status updated to ${status} for collect_request_id: ${collect_request_id}`);
       
+      // Automatically sync with school transactions
+      try {
+        console.log(`🔄 Auto-syncing school transactions for school: ${paymentTransaction.school_id}`);
+        await this.transactionService.updateSchoolTransactionsFromPayments(paymentTransaction.school_id);
+        console.log(`✅ School transactions synced successfully for school: ${paymentTransaction.school_id}`);
+      } catch (syncError) {
+        console.error('⚠️ Warning: Failed to sync school transactions:', syncError);
+        // Don't throw error as the payment status update was successful
+      }
+      
       return paymentTransaction;
     } catch (error) {
       console.error('❌ Error updating payment status:', error);
@@ -338,6 +360,57 @@ export class PaymentService {
       throw new HttpException(
         `Failed to get payment status: ${error.message}`,
         HttpStatus.NOT_FOUND
+      );
+    }
+  }
+
+  /**
+   * Manually sync school transactions with payments for a specific school
+   */
+  async syncSchoolTransactions(schoolId: string) {
+    try {
+      console.log(`🔄 Manual sync requested for school: ${schoolId}`);
+      const result = await this.transactionService.updateSchoolTransactionsFromPayments(schoolId);
+      console.log(`✅ Manual sync completed for school: ${schoolId}`);
+      return result;
+    } catch (error) {
+      console.error(`❌ Error in manual sync for school ${schoolId}:`, error);
+      throw new HttpException(
+        `Failed to sync school transactions: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Get payments and corresponding school transactions for a specific school
+   */
+  async getSchoolPaymentsWithTransactions(schoolId: string) {
+    try {
+      // Get payments for the school
+      const payments = await this.paymentTransactionModel.find({ school_id: schoolId }).sort({ createdAt: -1 });
+      
+      // Get school transactions for the school
+      const schoolTransactions = await this.transactionService.getTransactionsBySchool(schoolId, 100, 1);
+      
+      return {
+        success: true,
+        school_id: schoolId,
+        payments: {
+          total: payments.length,
+          data: payments
+        },
+        transactions: schoolTransactions,
+        sync_info: {
+          last_synced: new Date(),
+          auto_sync_enabled: true
+        }
+      };
+    } catch (error) {
+      console.error(`❌ Error getting school payments with transactions:`, error);
+      throw new HttpException(
+        `Failed to get school data: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }

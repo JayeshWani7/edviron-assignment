@@ -220,4 +220,24 @@ export class PaymentController {
       };
     }
   }
+
+  /**
+   * Manually sync school transactions with payments for a specific school
+   * POST /payment/sync-school-transactions/:schoolId
+   */
+  @Post('sync-school-transactions/:schoolId')
+  @UseGuards(JwtAuthGuard)
+  async syncSchoolTransactions(@Param('schoolId') schoolId: string) {
+    return this.paymentService.syncSchoolTransactions(schoolId);
+  }
+
+  /**
+   * Get payments and school transactions for a specific school
+   * GET /payment/school-data/:schoolId
+   */
+  @Get('school-data/:schoolId')
+  @UseGuards(JwtAuthGuard)
+  async getSchoolPaymentsWithTransactions(@Param('schoolId') schoolId: string) {
+    return this.paymentService.getSchoolPaymentsWithTransactions(schoolId);
+  }
 }
