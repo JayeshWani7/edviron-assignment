@@ -15,6 +15,9 @@ import TransactionStatusPage from './pages/TransactionStatusPage';
 import PaymentsPage from './pages/PaymentsPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import PaymentFailurePage from './pages/PaymentFailurePage';
+import PaymentCallbackHandler from './components/PaymentCallbackHandler';
+import PaymentDebugPage from './pages/PaymentDebugPage';
+import PaymentCallbackTester from './pages/PaymentCallbackTester';
 
 
 const queryClient = new QueryClient({
@@ -48,8 +51,11 @@ function App() {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/payments/callback/handler" element={<PaymentCallbackHandler />} />
                 <Route path="/payments/callback/success" element={<PaymentSuccessPage />} />
                 <Route path="/payments/callback/failure" element={<PaymentFailurePage />} />
+                <Route path="/payments/callback/debug" element={<PaymentDebugPage />} />
+                <Route path="/payments/callback/tester" element={<PaymentCallbackTester />} />
                 <Route path="/test" element={
                   <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
                     <div className="text-center">

@@ -9,9 +9,13 @@ const PaymentFailurePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Extract payment details from URL parameters
-    const collectRequestId = searchParams.get('collect_request_id') || searchParams.get('id');
-    const schoolId = searchParams.get('school_id');
+    // Extract payment details from URL parameters - handle both formats
+    const collectRequestId = searchParams.get('collect_request_id') || 
+                             searchParams.get('EdvironCollectRequestId') || 
+                             searchParams.get('id');
+    const schoolId = searchParams.get('school_id') || 
+                     searchParams.get('SchoolId') || 
+                     '65b0e6293e9f76a9694d84b4'; // Default school ID
     const status = searchParams.get('status');
     const amount = searchParams.get('amount');
     const error = searchParams.get('error');
@@ -19,6 +23,10 @@ const PaymentFailurePage: React.FC = () => {
     const failure_reason = searchParams.get('failure_reason') || searchParams.get('reason');
 
     const updatePaymentFailureStatus = async () => {
+      // Debug: Log all URL parameters
+      console.log('🔍 All URL parameters:', Object.fromEntries(searchParams.entries()));
+      console.log('🔍 Extracted values:', { collectRequestId, schoolId, status, amount, failure_reason });
+      
       if (collectRequestId && schoolId) {
         try {
           // Determine failure type based on URL parameters or test UPI ID
