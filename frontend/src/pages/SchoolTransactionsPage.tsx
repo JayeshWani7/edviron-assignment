@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { MagnifyingGlassIcon, BuildingOfficeIcon, ArrowPathIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, BuildingOfficeIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { transactionService } from '../services/transaction';
 import { paymentService } from '../services/payment';
@@ -21,7 +21,6 @@ export default function SchoolTransactionsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'transactions' | 'status'>('transactions');
 
   const limit = 10;
   const queryClient = useQueryClient();
